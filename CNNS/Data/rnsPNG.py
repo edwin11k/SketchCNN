@@ -14,7 +14,7 @@ from .utils import imgDownSize,imgTrim
 
 class RnsPNG(ReadPNG):
     # path should be the path of the data set folder, filepath=path/type
-    def __init__(self,dirPath=os.getcwd(),type1='imageType',zPad=1024,trimSize=1024,cSize=64,angleV=[0,90,180,270],scaleV=[1,0.75,0.5,0.25]):
+    def __init__(self,dirPath=os.getcwd(),type1='imageType',zPad=1024,trimSize=1024,cSize=64,angleV=[0],scaleV=[1]):
         super(RnsPNG,self).__init__(dirPath,type1)
         self.srImg=[];self.scale=scaleV;self.angle=angleV
         for img in self.img:
@@ -68,32 +68,46 @@ class RnsPNG(ReadPNG):
         self.srImg=srImgStack
         
         
-    def divideTrainTest(self,testPercent=0.1,remove_original=True,label=0):
+    # Random permutation
+    def divideTrainTestRandom(self,testPercent=0.1,remove_original=True,label=0):
         permIndex=np.random.permutation(len(self.srImg))
+        #print(permIndex)
         trainIndex=permIndex[0:int(len(self.srImg)*(1-testPercent))]
         trainThick=len(trainIndex)
         testThick=len(self.srImg)-trainThick
+        #print(trainIndex)
       #  testIndex=permIndex[int(len(self.img)*(1-testPercent)):-1]
         self.srImgTrainX=np.zeros((trainThick,(self.srImg[0]).shape[0],(self.srImg[0]).shape[1]))
         self.srImgTestX=np.zeros((testThick,(self.srImg[0]).shape[0],(self.srImg[0]).shape[1]))
         self.srImgTrainY=[]
         self.srImgTestY=[]
         
+        trainSlice=0;testSlice=0;
         for index in permIndex:
             if index in trainIndex:
-                self.srImgTrainX=self.srImg[0:trainThick,:,:]
-                self.srImgTrainY.append(label)
+                self.srImgTrainX[trainSlice,:,:]=self.srImg[index,:,:]
+                self.srImgTrainY.append(label);trainSlice+=1
             else:
-                self.srImgTestX=self.srImg[trainThick:,:,:]
-                self.srImgTestY.append(label)
+                self.srImgTestX[testSlice,:,:]=self.srImg[index,:,:]
+                self.srImgTestY.append(label);testSlice+=1
         if remove_original==True:
             self.srImg=[]
+       
    
  
 
-         #may be able to view the image, but commented since matplotlib is not installed    
-#    def viewImg(self,fileNum=0,scaleNum=0,angleNum=0):
-#        plt.imshow(((self.srImg[fileNum])[scaleNum])[angleNum])
-        
-        
-   
+    # Divide the file into train & test by peak from the beginning
+    def extractTrainTestfile(self,testPercent=0.2,remove_original=True,label=0):
+        trainThick=int(len(self.srImg)*(1-testPercent))
+        testThick=len(self.srImg)-trainThick
+        self.srImgTrainX=np.zeros((trainThick,(self.srImg[0]).shape[0],(self.srImg[0]).shape[1]))
+        self.srImgTestX=np.zeros((testThick,(self.srImg[0]).shape[0],(self.srImg[0]).shape[1]))
+        self.srImgTrainX=self.srImg[:trainThick,:,:]
+        self.srImgTestX=self.srImg[trainThick:,:,:]
+        self.srImgTrainY=[label]*trainThick
+        self.srImgTestY=[label]*testThick
+        if remove_original==True:
+            self.srImg=[]
+            
+            
+            
